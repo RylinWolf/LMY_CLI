@@ -145,7 +145,6 @@ def main():
             continue
 
         user_info = login(input("请输入账号: "), input("请输入密码: "))
-        # user_info = login("13203549809", "woshiBlu.")
         if not user_info["status"]:
             print("==========提示信息==========")
             print("登录失败! " + user_info["errorMessage"])
