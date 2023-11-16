@@ -1,2 +1,12 @@
 # LMY_CLI
-**To entry the program, run 'program.py'**
+
+---
+本软件为蓝墨云班课学习辅助工具，完全开源，仅供学习交流使用，不可用于其他途径！
+
+**要运行软件，请运行 program.py**
+
+**或使用控制台进入工作目录并执行如下命令**
+
+```
+python ./program.py
+```
