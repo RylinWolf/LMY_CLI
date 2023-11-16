@@ -1,0 +1,23 @@
+POST /web/index.php?c=interaction_quiz&m=person_result HTTP/1.1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.55 Safari/537.36
+Accept-Encoding: gzip, deflate, br
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Connection: close
+Host: www.mosoteach.cn
+Cookie: _uab_collina=170002305914632026958164; login_token=1f9842d01cb4046fbd409e3a6c1076f0; acw_tc=76b20f6c17001031435744103e6882f6d6ea69f5cee13ab672f1f031e5f8ef; teachweb=5565665d788947e61b357c79d752d330c6c23887; SERVERID=f83e20313967653971d0618a2ae74747|1700103159|1700103143
+Content-Length: 137
+Content-Type: application/x-www-form-urlencoded
+Sec-Ch-Ua: " Not A;Brand";v="99", "Chromium";v="96", "Google Chrome";v="96"
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: macOS
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Referer: https://www.mosoteach.cn/web/index.php?c=interaction_quiz&m=person_quiz_result&clazz_course_id=4905CDFC-9BDA-4A59-8FA4-D0698F406B04&id=56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6&order_item=group
+Accept-Language: zh-CN,zh;q=0.9
+
+clazz_course_id=4905CDFC-9BDA-4A59-8FA4-D0698F406B04&id=56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6&user_id=FC9C4296-92D2-42FD-9C8C-BF778904BC39
+
+

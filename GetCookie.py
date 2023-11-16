@@ -30,7 +30,6 @@ def get_cookie(token):
         "Connection": "close"
     }
 
-
     params["proxy_token"] = token
 
     response = rt.get(url, headers=headers, params=params, verify=False)
@@ -43,5 +42,4 @@ def get_cookie(token):
     for each in cookie_list:
         cookie += each + ";"
     return cookie
-
 

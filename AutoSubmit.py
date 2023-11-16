@@ -32,7 +32,8 @@ def reg_action(course_id, section_id, cookie):
     }
 
     params = {"c": "interaction_quiz", "m": "start_quiz"}
-    data = {"act_id": section_id}
+    # data = {"act_id": section_id}
+    data = {"act_id": section_id, "cc_id": course_id}
     url = "https://www.mosoteach.cn/web/index.php"
     response = rt.post(url, headers=headers, params=params, data=data, verify=False)
     try:
@@ -42,8 +43,11 @@ def reg_action(course_id, section_id, cookie):
     except json.decoder.JSONDecodeError:
         print("答题注册失败! ")
         return False
+    if res["status"] is False:
+        print("答题注册失败! " + res["result_msg"])
+        return False
     print("答题注册成功, 已开始答题, 请等待! ")
-    return True
+    return res["id"]
 
 
 """
@@ -75,10 +79,12 @@ data/json [{"id":"924DEBF8-E871-43EE-B5BD-DE028AD9E410","type":"MULTI","proof_at
 
 
 def submit(course_id, section_id, cookie, answer_rows, sleep_time=30):
-    reg_action(course_id, section_id, cookie)
-    for i in range(1, sleep_time+1):
-        print("\r请等待..."+">"*int(100*i/sleep_time)+f"{i}/{sleep_time}", end="")
-        time.sleep((sleep_time-1)/sleep_time)
+    start_id = reg_action(course_id, section_id, cookie)
+    if start_id is False:
+        return False
+    for i in range(1, sleep_time + 1):
+        print("\r请等待..." + ">" * int(100 * i / sleep_time) + f"{i}/{sleep_time}", end="")
+        time.sleep((sleep_time - 1) / sleep_time)
 
     headers = {
         "Host": "www.mosoteach.cn",
@@ -103,27 +109,54 @@ def submit(course_id, section_id, cookie, answer_rows, sleep_time=30):
     }
     url = "https://www.mosoteach.cn/web/index.php"
     params = {"c": "interaction_quiz", "m": "save_answer"}
-    answer = []
-    for each in answer_rows:
-        # print(each)
-        answer.append({"id": each["id"], "type": each["type"], "proof_attachments": [], "answers": each["answers"]})
+
+    # answer = []
+    # for each in answer_rows:
+    #     # print(each)
+    #     answer.append({"id": each["id"], "type": each["type"], "proof_attachments": [], "answers": each["answers"]})
     # print(answer)
-    data = {"id": section_id, "clazz_course_id": course_id,
-            "data": str(answer).replace(" ", "").replace("'", "\"")
-            }
+
+    # v2 接口答题提交的数据格式变了
+    answer = {}
+    for i, each in enumerate(answer_rows):
+        row_title_inx = f"data[{i}]"
+        row_title_topic = "[topic_id]"
+        row_title_type = "[type]"
+        row_title_answer = "[answers][%s]"
+        submit_answer = each["answers"]
+        # 题目id
+        answer[row_title_inx + row_title_topic] = each['topic_id']
+        # 题目类型
+        answer[row_title_inx + row_title_type] = each['type']
+        # 题目选项
+        for j, this_answer in enumerate(submit_answer):
+            answer[row_title_inx + row_title_answer % j] = this_answer
+
+    # data = {"id": section_id, "clazz_course_id": course_id,
+    #         "data": str(answer).replace(" ", "").replace("'", "\"")
+    #         }
+
+    data = {"start_enter_id": start_id, "id": section_id, "clazz_course_id": course_id}
+    data.update(answer)
     # print(data)
 
     response = rt.post(url, headers=headers, params=params, data=data, verify=False)
     res = json.loads(response.text)
-    if "data" not in res:
-        print("自动答题失败!")
+    if "status" not in res:
+        print("自动答题失败! 未知错误")
         return False
 
-    if res["result_msg"] == "OK":
-        print("答题成功! ")
-        score_details = res["data"]
-        print(f"本次成绩: {score_details['score']}, 最好成绩: {score_details['best_score']}")
+    if res["status"] is True:
+        print("\n答题成功! ")
+        score_details = res["score"]
+        print(f"本次成绩: {score_details['thisTimeScore']}, 最好成绩: {score_details['bestScore']}")
         return True
 
-    print("未知错误! "+res)
+    print("自动答题失败! " + res["result_msg"])
     return False
+
+# clazz_course_id = "4905CDFC-9BDA-4A59-8FA4-D0698F406B04"
+# s_id = "56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6"
+# u_id = "FC9C4296-92D2-42FD-9C8C-BF778904BC39"
+# c = "_uab_collina=170002305914632026958164; login_token=1f9842d01cb4046fbd409e3a6c1076f0; acw_tc=76b20f6c17001031435744103e6882f6d6ea69f5cee13ab672f1f031e5f8ef; teachweb=5565665d788947e61b357c79d752d330c6c23887; SERVERID=f83e20313967653971d0618a2ae74747|1700103159|1700103143"
+# submit(clazz_course_id, s_id, c, ar, 10)

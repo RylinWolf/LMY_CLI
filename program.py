@@ -32,7 +32,7 @@ def get_courses(user_info, cookie):
         select_course = int(select_course)
         if select_course == 0:
             return False
-        print(courses_ids[select_course-1])
+        print(courses_ids[select_course - 1])
         return courses_ids[select_course - 1]
 
 
@@ -77,7 +77,8 @@ def get_section_detail(course_id, section_name, section_id, user_id, cookie):
     details = GetSection.get_section_detail(course_id, section_id, user_id, cookie)
     print(f"===================={section_name}答题情况====================")
     for detail in details:
-        print(f"{detail['name']}  \t学号: {detail['no']}  得分: {detail['score']}  答题时长: {detail['duration']}s  提交时间: {detail['time']}")
+        print(
+            f"{detail['name']}  \t学号: {detail['no']}  得分: {detail['score']}  答题时长: {detail['duration']}s  提交时间: {detail['time']}")
 
 
 def get_answer(class_id, section_id, user_id, cookie, show=False):
@@ -88,12 +89,20 @@ def get_answer(class_id, section_id, user_id, cookie, show=False):
         return answer['rows']
     answer_alpha = ["A", "B", "C", "D", "E"]
     print(f"===================={answer['title']}====================")
-    print(f"\n章节标题: {answer['title']}\n"
-          f"百分制得分: {answer['user_score']}\n总分: {answer['user_total_score']}\n完成时间: {answer['user_duration']}s")
+    print(f"章节标题: {answer['title']}\n"
+          f"百分制得分: {answer['user_score']}\n得分: {answer['user_total_score']}\n完成时间: {answer['user_duration']}")
     for index, each_part in enumerate(answer['rows']):
         print(f"==========第{index + 1}道题目==========")
-        print(f"题目id: {each_part['id']}\n题目类型: {each_part['type']}\n题目标题: {each_part['subject']}\n"
-              f"题目选项: {each_part['options']}\n题目答案: {[answer_alpha[each] for each in each_part['answers']]}")
+        # print(f"题目id: {each_part['id']}\n题目类型: {each_part['type']}\n题目标题: {each_part['subject']}\n"
+        #       f"题目选项: {each_part['options']}\n题目答案: {[answer_alpha[each] for each in each_part['answers']]}")
+
+        topic_options = []
+        for option in each_part["options"]:
+            topic_options.append(f"{answer_alpha[option['item_no']]}. {option['content']}")
+        # v2 接口有 key 变动
+        print(f"题目id: {each_part['topic_id']}\n题目类型: {each_part['type']}\n题目标题: {each_part['subject']}\n"
+              f"题目选项: {topic_options}\n题目答案: {[answer_alpha[each] for each in each_part['answers']]}\n"
+              f"用户答案: {[answer_alpha[each] for each in each_part['user_answers']]}")
     return answer['rows']
 
 
@@ -132,7 +141,8 @@ def section_func(course_id, section_name, section_id, user_id, cookie):
                 print("输入有误! 需为正整数! ")
                 continue
             seconds = int(seconds)
-            auto_submit(course_id, section_id, cookie, get_answer(course_id, section_id, user_id, cookie, False), seconds)
+            auto_submit(course_id, section_id, cookie, get_answer(course_id, section_id, user_id, cookie, False),
+                        seconds)
 
 
 def main():
@@ -144,7 +154,8 @@ def main():
         if main_func != "1":
             continue
 
-        user_info = login(input("请输入账号: "), input("请输入密码: "))
+        # user_info = login(input("请输入账号: "), input("请输入密码: "))
+        user_info = login("13203549809", "woshiBlu.")
         if not user_info["status"]:
             print("==========提示信息==========")
             print("登录失败! " + user_info["errorMessage"])
@@ -164,6 +175,7 @@ def main():
                 section_info = get_sections(select_course_name, select_course_id, cookie)
                 if not section_info:
                     break
+
                 select_section_name, select_section_id = section_info
                 section_func(select_course_id, select_section_name, select_section_id, user_info["id"], cookie)
 

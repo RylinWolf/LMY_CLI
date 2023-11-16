@@ -88,6 +88,33 @@ Connection: close
 id=9965020F-7D09-41B9-8276-5AF7CBDBD128
 """
 
+"""
+v2
+
+POST /web/index.php?c=interaction_quiz&m=get_quiz_ranking HTTP/1.1
+Host: www.mosoteach.cn
+Cookie: _uab_collina=170002305914632026958164; login_token=1f9842d01cb4046fbd409e3a6c1076f0; acw_tc=76b20f4617001011633821985ece9255a6ed4f1c0c81a60299270b1b0a3f08; teachweb=53ce861a6ced79cabe6e216eb5c9310663c22da0; SERVERID=f83e20313967653971d0618a2ae74747|1700101182|1700101163
+Content-Length: 81
+Sec-Ch-Ua: "Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"
+X-Token: 1f9842d01cb4046fbd409e3a6c1076f0
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Accept: application/json, text/plain, */*
+X-Requested-With: XMLHttpRequest
+Sec-Ch-Ua-Platform: "macOS"
+Origin: https://www.mosoteach.cn
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://www.mosoteach.cn/web/index.php?c=interaction_quiz&m=quiz_ranking&clazz_course_id=4905CDFC-9BDA-4A59-8FA4-D0698F406B04&id=56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6&order_item=group&user_id=FC9C4296-92D2-42FD-9C8C-BF778904BC39
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9
+Connection: close
+
+id=56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6&ccId=4905CDFC-9BDA-4A59-8FA4-D0698F406B04
+"""
+
 
 def get_section_detail(course_id, section_id, user_id, cookie):
     """
@@ -103,7 +130,8 @@ def get_section_detail(course_id, section_id, user_id, cookie):
         "Cookie": cookie,
         "Content-Length": "39",
         "Sec-Ch-Ua": '" Not A;Brand";v="99", "Chromium";v="96", "Google Chrome";v="96"',
-        "Accept": "application/json, text/javascript, */*; q=0.01",
+        # "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept": "application/json, text/plain, */*",
         "X-Requested-With": "XMLHttpRequest",
         "Sec-Ch-Ua-Mobile": "?0",
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.55 Safari/537.36",
@@ -111,23 +139,54 @@ def get_section_detail(course_id, section_id, user_id, cookie):
         "Sec-Fetch-Site": "same-origin",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Dest": "empty",
-        "Referer": f"https://www.mosoteach.cn/web/index.php?c=interaction_quiz&m=quiz_ranking&order_item=group&clazz_course_id={course_id}&id={section_id}&user_id={user_id}",
+        # "Referer": f"https://www.mosoteach.cn/web/index.php?c=interaction_quiz&m=quiz_ranking&order_item=group&clazz_course_id={course_id}&id={section_id}&user_id={user_id}",
+        # v2 接口的 Referer 暂时没有变更
+        "Referer": f"https://www.mosoteach.cn/web/index.php?c=interaction_quiz&m=quiz_ranking&clazz_course_id={course_id}&id={section_id}&order_item=group&user_id={user_id}",
         "Accept-Encoding": "gzip, deflate",
         "Accept-Language": "zh-CN,zh;q=0.9",
         "Connection": "close"
     }
+    # c=interaction_quiz
+    # m=quiz_ranking
+    # clazz_course_id=4905CDFC-9BDA-4A59-8FA4-D0698F406B04
+    # id=56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6
+    # order_item=group
+    # user_id=FC9C4296-92D2-42FD-9C8C-BF778904BC39
     params = {"c": "interaction_quiz", "m": "get_quiz_ranking"}
-    data = {"id": section_id}
+
+    # v2 接口在 POST data 中新增了 ccId 字段，该字段不可缺少。ccId 其实就是 course_id.
+    # 注意，ccId 区分大小写
+    data = {"id": section_id, "ccId": course_id}
     url = "https://www.mosoteach.cn/web/index.php"
 
     response = rt.post(url, headers=headers, params=params, data=data, verify=False)
-    detail_list = json.loads(response.text)["data"]["rows"]
+    # print(json.loads(response.text))
+    # v2 接口的数据内容进行了修改
+    # detail_list = json.loads(response.text)["data"]["rows"]
+
+    detail_list = json.loads(response.text)["activity"]["members"]
+
     res = []
     for info in detail_list:
-        full_name = info["full_name"]
-        student_no = info["student_no"]
-        score = info["score"]
-        time = info["end_time"]
-        duration = info["duration"]
-        res.append({"name": full_name, "no": student_no, "score": score, "time": time, "duration": duration})
+        this_stu = {
+            "name": info["full_name"],
+            "no": info["student_no"],
+            "score": None,
+            "time": info["end_time"],
+            "duration": None
+        }
+        
+        if not this_stu["time"]:
+            res.append(this_stu.copy())
+            continue
+
+        this_stu["score"] = info["score"]
+        this_stu["duration"] = "%s分%s秒" % divmod(info["duration"], 60)
+        res.append(this_stu.copy())
     return res
+
+# clazz_course_id = "4905CDFC-9BDA-4A59-8FA4-D0698F406B04"
+# s_id = "56400F10-A4D8-4C2B-A200-8BAEEDBB6BC6"
+# u_id = "FC9C4296-92D2-42FD-9C8C-BF778904BC39"
+# c = "_uab_collina=170002305914632026958164; login_token=1f9842d01cb4046fbd409e3a6c1076f0; acw_tc=76b20f4617001011633821985ece9255a6ed4f1c0c81a60299270b1b0a3f08; teachweb=bc8f7521705c328f76f1fa7bfacdfd50ba7b7f8a; SERVERID=f83e20313967653971d0618a2ae74747|1700101484|1700101163"
+# print(get_section_detail(clazz_course_id, s_id, u_id, c))
