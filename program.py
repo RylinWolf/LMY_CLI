@@ -1,3 +1,7 @@
+import os
+import pickle
+import sys
+
 import AutoSubmit
 import GetCookie
 import GetSection
@@ -5,9 +9,36 @@ import GetCourses
 import GetAnswers
 import Login
 
+setting_file = "settings.cfg"
+abs_st_file = os.path.join(os.getcwd(), setting_file)
+setting_format = {
+    "account": None,
+    "passcode": None,
+}
 
-def login(user, password):
-    return Login.login(user, password)
+
+def login(settings: dict | None):
+    print("===================")
+    user = None
+    password = None
+    if settings:
+        user = settings["account"]
+        password = settings["passcode"]
+
+    user = input("账号: ") if not user else (user, print(f"当前账号: {user}"))[0]
+    password = input("密码: ") if not password else password
+
+    while True:
+        user_info = Login.login(user, password)
+
+        if not user_info["status"]:
+            print("==========提示信息==========")
+            print("登录失败! " + user_info["errorMessage"])
+            print("==========================\n")
+            user = input("账号: ")
+            password = input("密码: ")
+            continue
+        return {"user_info": user_info, "account": user, "passcode": password}
 
 
 def get_cookie(token):
@@ -78,7 +109,7 @@ def get_section_detail(course_id, section_name, section_id, user_id, cookie):
     print(f"===================={section_name}答题情况====================")
     for detail in details:
         print(
-            f"{detail['name']}  \t学号: {detail['no']}  得分: {detail['score']}  答题时长: {detail['duration']}s  提交时间: {detail['time']}")
+            f"{detail['name']}  \t学号: {detail['no']}  得分: {detail['score']}  答题时长: {detail['duration']}  提交时间: {detail['time']}")
 
 
 def get_answer(class_id, section_id, user_id, cookie, show=False):
@@ -145,38 +176,126 @@ def section_func(course_id, section_name, section_id, user_id, cookie):
                         seconds)
 
 
-def main():
+def enter_course(user_info):
     while True:
-        print("1、登录\n2、退出")
-        main_func = input("请选择: ")
-        if main_func == "2":
+        cookie = get_cookie(user_info["token"])
+        print(cookie)
+        print(user_info['id'])
+        course_info = get_courses(user_info, cookie)
+        if not course_info:
             return
-        if main_func != "1":
-            continue
-
-        user_info = login(input("请输入账号: "), input("请输入密码: "))
-        if not user_info["status"]:
-            print("==========提示信息==========")
-            print("登录失败! " + user_info["errorMessage"])
-            print("==========================\n")
-            continue
+        select_course_name, select_course_id = course_info
 
         while True:
-            cookie = get_cookie(user_info["token"])
-            print(cookie)
-            print(user_info['id'])
-            course_info = get_courses(user_info, cookie)
-            if not course_info:
-                return
-            select_course_name, select_course_id = course_info
+            section_info = get_sections(select_course_name, select_course_id, cookie)
+            if not section_info:
+                break
 
-            while True:
-                section_info = get_sections(select_course_name, select_course_id, cookie)
-                if not section_info:
-                    break
-
-                select_section_name, select_section_id = section_info
-                section_func(select_course_id, select_section_name, select_section_id, user_info["id"], cookie)
+            select_section_name, select_section_id = section_info
+            section_func(select_course_id, select_section_name, select_section_id, user_info["id"], cookie)
 
 
-main()
+def initialize_settings():
+    """
+    初始化设置文件
+    :return: None
+    """
+    if os.path.isfile(abs_st_file):
+        return
+    with open(abs_st_file, "wb+") as f:
+        pickle.dump(setting_format.copy(), f)
+
+
+def load_settings():
+    """
+    加载配置信息
+    :return:
+    """
+    with open(abs_st_file, "rb+") as f:
+        settings = pickle.load(f)
+    return settings
+
+
+def save_settings(settings):
+    """
+    保存配置信息
+    :param settings: 配置字典
+    :return: None
+    """
+    with open(abs_st_file, "wb") as f:
+        pickle.dump(settings, f)
+    return
+
+
+def toggle_settings(settings=None, account=None, passcode=None):
+    """
+    切换指定配置
+    :param settings: 配置字典
+    :param account: 要保存的账号信息
+    :param passcode: 要保存的密码信息
+    :return: None
+    """
+    logout = settings is None
+    settings = load_settings() if not settings else settings
+    settings["account"] = account
+    settings["passcode"] = passcode
+    save_settings(settings)
+    sys.exit() if logout else None
+
+
+def setting(account, passcode):
+    while True:
+        settings = load_settings()
+        is_ac = settings["account"] is not None
+        is_pc = settings["passcode"] is not None
+
+        print("\n========== 当前设置 ==========")
+        print(f"记住账号[{is_ac}]")
+        print(f"记住密码[{is_pc}]")
+
+        print("\n【切换设置】")
+        print(f"1. {'记住' if not is_ac else '取消记住'}账号")
+        print(f"2. {'记住' if not is_pc else '取消记住'}密码")
+        print(f"3. 返回")
+        ix = input("请选择: ")
+        if ix == "1":
+            toggle_settings(settings, None if is_ac else account, None if is_ac else settings['passcode'])
+            continue
+        if ix == "2":
+            toggle_settings(settings, settings['account'] if is_pc else account, None if is_pc else passcode)
+            continue
+        if ix == "3":
+            break
+
+
+def main(login_info):
+    while True:
+        user_info = login_info["user_info"]
+        account = login_info["account"]
+        passcode = login_info["passcode"]
+        funcs = {
+            "1": ("进入课程", enter_course, (user_info,)),
+            "2": ("设置", setting, (account, passcode,)),
+            "3": ("临时切换账号", run, (False,)),
+            "4": ("注销", toggle_settings,),
+            "5": ("退出", sys.exit)
+        }
+        print("====================")
+        for k, v in funcs.items():
+            print(f"{k}. {v[0]}")
+        func_k = input("请选择: ")
+        func = funcs[func_k]
+        if len(func) > 2:
+            func[1](*func[2])
+        else:
+            func[1]()
+
+
+def run(use_settings=True):
+    initialize_settings()
+    settings = load_settings() if use_settings else None
+    login_info = login(settings)
+    main(login_info)
+
+
+run()

@@ -74,11 +74,16 @@ def get_answer(class_id, section_id, user_id, cookie):
     #     return False
 
     res = json.loads(content.text)
-    # 个人信息
-    stat = res["stat"]
-
-    # 活动信息
-    activity = res["activity"]
+    try:
+        # 个人信息
+        stat = res["stat"]
+        # 活动信息
+        activity = res["activity"]
+        if not stat or not activity:
+            raise KeyError()
+    except KeyError as _:
+        print("该章节尚未答题，请先答题！")
+        return
 
     result = {"title": activity["title"],
               "user_score": stat["user_score"],
